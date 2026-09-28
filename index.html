@@ -109,12 +109,19 @@
       margin-top: 6px;
     }
 
-    .auth-toggle {
+    .auth-toggle-btn {
+      background: none;
+      border: none;
+      padding: 8px 12px;
       margin-top: 14px;
       color: #0d0d0d;
       text-decoration: underline;
       cursor: pointer;
-      font-size: 17px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 19px;
+      display: inline-block;
+      user-select: auto;
+      -webkit-user-select: auto;
     }
 
     /* List Selector Toolbar */
@@ -331,7 +338,7 @@
       <input type="email" id="authEmail" class="auth-input" placeholder="Your email address" autocomplete="email">
       <input type="password" id="authPassword" class="auth-input" placeholder="Password (min 6 chars)">
       <button id="authSubmitBtn" class="auth-btn" onclick="handleAuthSubmit()">SIGN IN</button>
-      <div id="authToggleLink" class="auth-toggle" onclick="toggleAuthMode()">Don't have an account? Sign up</div>
+      <button type="button" id="authToggleLink" class="auth-toggle-btn" onclick="toggleAuthMode()">Don't have an account? Sign up</button>
     </div>
   </div>
 
