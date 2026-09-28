@@ -23,73 +23,76 @@
       -webkit-tap-highlight-color: transparent;
     }
     
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100dvh;
+      overflow: hidden; /* Stops whole-screen rubber-band bounce */
       background-color: #FFFFFF;
       color: #0d0d0d;
       font-family: 'Patrick Hand', cursive, -apple-system, sans-serif;
-      min-height: 100vh;
+    }
+
+    body {
       display: flex;
       flex-direction: column;
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-top: max(8px, env(safe-area-inset-top));
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 
     .container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      max-width: 600px;
+      max-width: 520px;
       width: 100%;
+      height: 100%;
       margin: 0 auto;
-      padding: 12px 18px 0 18px;
+      padding: 4px 16px 0 16px;
+      overflow: hidden;
     }
 
     /* Auth Screen Modal */
     .auth-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 20px;
       z-index: 1000;
     }
 
     .auth-box {
       width: 100%;
-      max-width: 360px;
-      border: 3.5px solid #0d0d0d;
-      border-radius: 16px;
-      padding: 24px;
+      max-width: 330px;
+      border: 3px solid #0d0d0d;
+      border-radius: 14px;
+      padding: 20px;
       text-align: center;
     }
 
     .auth-box h2 {
-      margin: 0 0 6px 0;
-      font-size: 34px;
+      margin: 0 0 4px 0;
+      font-size: 28px;
       text-transform: uppercase;
     }
 
     .auth-box p {
-      margin: 0 0 16px 0;
+      margin: 0 0 14px 0;
       color: #666;
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .auth-input {
       width: 100%;
-      padding: 12px 14px;
-      margin-bottom: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
       border: 2px solid #0d0d0d;
       border-radius: 8px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 20px;
+      font-size: 18px;
       outline: none;
       color: #0d0d0d;
       background: #fff;
@@ -101,24 +104,24 @@
       color: #FFFFFF;
       border: none;
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .auth-toggle-btn {
       background: transparent;
       border: none;
-      padding: 12px;
-      margin-top: 14px;
+      padding: 8px;
+      margin-top: 10px;
       color: #0d0d0d;
       text-decoration: underline;
       cursor: pointer;
       font-family: 'Patrick Hand', cursive;
-      font-size: 20px;
+      font-size: 17px;
       display: block;
       width: 100%;
       text-align: center;
@@ -129,8 +132,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      gap: 8px;
+      margin-bottom: 8px;
+      gap: 6px;
     }
 
     .list-select-wrapper {
@@ -140,9 +143,9 @@
 
     select.list-picker {
       width: 100%;
-      padding: 8px 28px 8px 12px;
+      padding: 6px 24px 6px 10px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: bold;
       color: #0d0d0d;
       background: #FFFFFF;
@@ -154,11 +157,11 @@
 
     .select-arrow {
       position: absolute;
-      right: 12px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .btn-secondary {
@@ -166,9 +169,9 @@
       border: 2px solid #0d0d0d;
       border-radius: 8px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
-      padding: 7px 10px;
+      padding: 5px 8px;
       cursor: pointer;
     }
 
@@ -177,37 +180,37 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      padding-bottom: 8px;
-      border-bottom: 3.5px solid #0d0d0d;
+      padding-bottom: 6px;
+      border-bottom: 3px solid #0d0d0d;
     }
 
     .title-area h1 {
       margin: 0;
-      font-size: 32px;
+      font-size: 26px;
       line-height: 1;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
 
     .title-area .status {
-      font-size: 17px;
+      font-size: 14px;
       color: #666;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .btn-reset {
       background: #0d0d0d;
       color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
+      border-radius: 7px;
+      padding: 6px 12px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: opacity 0.2s;
     }
 
@@ -216,63 +219,64 @@
       cursor: default;
     }
 
-    /* Task List */
+    /* Task List (Only this section scrolls if tasks overflow) */
     .task-list {
       flex: 1;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       list-style: none;
-      padding: 10px 0;
+      padding: 8px 0;
       margin: 0;
     }
 
     .task-row {
       display: flex;
       align-items: center;
-      padding: 10px 14px;
-      margin-bottom: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
       background: #FFFFFF;
       border: 2px solid rgba(13,13,13,0.15);
-      border-radius: 12px;
+      border-radius: 10px;
       transition: all 0.15s ease;
       cursor: pointer;
     }
 
     .task-row.highlighted {
-      border: 2.5px solid #0d0d0d;
+      border: 2px solid #0d0d0d;
       background-color: rgba(0,0,0,0.03);
     }
 
     .checkbox {
-      width: 26px;
-      height: 26px;
-      min-width: 26px;
-      border: 3px solid #0d0d0d;
-      border-radius: 6px;
-      margin-right: 14px;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border: 2.5px solid #0d0d0d;
+      border-radius: 5px;
+      margin-right: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
     }
 
     .task-text {
       flex: 1;
-      font-size: 24px;
+      font-size: 20px;
       line-height: 1.1;
       word-break: break-word;
     }
 
     .task-text.completed {
       color: #777;
-      text-decoration: line-through 3px #0d0d0d;
+      text-decoration: line-through 2.5px #0d0d0d;
     }
 
     .delete-btn {
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
       border-radius: 50%;
       background: #D91E1E;
       color: #FFFFFF;
@@ -280,35 +284,35 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 900;
       cursor: pointer;
-      margin-left: 10px;
+      margin-left: 8px;
     }
 
     .empty-state {
       text-align: center;
-      padding: 60px 20px;
+      padding: 40px 16px;
       color: #888;
-      font-size: 22px;
+      font-size: 19px;
     }
 
     /* Bottom Input */
     .bottom-bar {
       border-top: 2px solid rgba(13,13,13,0.2);
-      padding: 12px 0;
+      padding: 8px 0;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       background: #FFFFFF;
     }
 
     .task-input {
       flex: 1;
-      padding: 10px 14px;
-      border: 2.5px solid #0d0d0d;
-      border-radius: 10px;
+      padding: 8px 12px;
+      border: 2px solid #0d0d0d;
+      border-radius: 8px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 20px;
+      font-size: 18px;
       outline: none;
       color: #0d0d0d;
       background: #fff;
@@ -318,9 +322,10 @@
       background: #0d0d0d;
       color: #FFFFFF;
       border: none;
-      border-radius: 10px;
-      width: 50px;
-      font-size: 26px;
+      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
