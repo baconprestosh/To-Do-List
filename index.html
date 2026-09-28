@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Daily Sharpie</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sharpie Routine">
+  <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/180/000000/ball-point-pen.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      color: #0d0d0d;
+      font-family: 'Patrick Hand', cursive, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 12px 18px 0 18px;
+    }
+
+    /* Auth Modal Screen */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 1000;
+    }
+
+    .auth-box {
+      width: 100%;
+      max-width: 360px;
+      border: 3.5px solid #0d0d0d;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .auth-box h2 {
+      margin: 0 0 6px 0;
+      font-size: 34px;
+      text-transform: uppercase;
+    }
+
+    .auth-box p {
+      margin: 0 0 16px 0;
+      color: #666;
+      font-size: 18px;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border: 2px solid #0d0d0d;
+      border-radius: 8px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 20px;
+      outline: none;
+      user-select: text;
+    }
+
+    .auth-btn {
+      width: 100%;
+      background: #0d0d0d;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .auth-toggle {
+      margin-top: 14px;
+      color: #0d0d0d;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 17px;
+    }
+
+    /* List Selector Toolbar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .list-select-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    select.list-picker {
+      width: 100%;
+      padding: 8px 28px 8px 12px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 19px;
+      font-weight: bold;
+      color: #0d0d0d;
+      background: #FFFFFF;
+      border: 2px solid #0d0d0d;
+      border-radius: 8px;
+      appearance: none;
+      outline: none;
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      border: 2px solid #0d0d0d;
+      border-radius: 8px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 7px 10px;
+      cursor: pointer;
+    }
+
+    /* Main Routine Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 8px;
+      border-bottom: 3.5px solid #0d0d0d;
+    }
+
+    .title-area h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .title-area .status {
+      font-size: 17px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .btn-reset {
+      background: #0d0d0d;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .btn-reset:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+
+    /* Task List */
+    .task-list {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+      padding: 10px 0;
+      margin: 0;
+    }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: #FFFFFF;
+      border: 2px solid rgba(13,13,13,0.15);
+      border-radius: 12px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .task-row.highlighted {
+      border: 2.5px solid #0d0d0d;
+      background-color: rgba(0,0,0,0.03);
+    }
+
+    .checkbox {
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      border: 3px solid #0d0d0d;
+      border-radius: 6px;
+      margin-right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .task-text {
+      flex: 1;
+      font-size: 24px;
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .task-text.completed {
+      color: #777;
+      text-decoration: line-through 3px #0d0d0d;
+    }
+
+    .delete-btn {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      background: #D91E1E;
+      color: #FFFFFF;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+      font-size: 22px;
+    }
+
+    /* Bottom Input */
+    .bottom-bar {
+      border-top: 2px solid rgba(13,13,13,0.2);
+      padding: 12px 0;
+      display: flex;
+      gap: 10px;
+      background: #FFFFFF;
+    }
+
+    .task-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2.5px solid #0d0d0d;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 20px;
+      outline: none;
+      color: #0d0d0d;
+      user-select: text;
+    }
+
+    .btn-add {
+      background: #0d0d0d;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      width: 50px;
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Screen (Visible when logged out) -->
+  <div id="authScreen" class="auth-overlay">
+    <div class="auth-box">
+      <h2 id="authTitle">Sign In</h2>
+      <p id="authSubtitle">Access your private routine lists</p>
+      <input type="email" id="authEmail" class="auth-input" placeholder="Your email address" autocomplete="email">
+      <input type="password" id="authPassword" class="auth-input" placeholder="Password (min 6 chars)">
+      <button id="authSubmitBtn" class="auth-btn" onclick="handleAuthSubmit()">SIGN IN</button>
+      <div id="authToggleLink" class="auth-toggle" onclick="toggleAuthMode()">Don't have an account? Sign up</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- List Selector & Logout -->
+    <div class="toolbar">
+      <div class="list-select-wrapper">
+        <select id="listPicker" class="list-picker" onchange="switchList(this.value)"></select>
+        <span class="select-arrow">▼</span>
+      </div>
+      <button class="btn-secondary" onclick="promptNewList()">+ New</button>
+      <button class="btn-secondary" onclick="deleteCurrentList()">🗑</button>
+      <button class="btn-secondary" onclick="logOut()">Sign Out</button>
+    </div>
+
+    <!-- Routine Header -->
+    <div class="header">
+      <div class="title-area">
+        <h1 id="listHeading">Daily Routine</h1>
+        <div id="statusCounter" class="status">0 OF 0 COMPLETED</div>
+      </div>
+      <button id="resetBtn" class="btn-reset" onclick="resetRoutine()" disabled>
+        ↺ RESET
+      </button>
+    </div>
+
+    <!-- Items -->
+    <ul id="taskList" class="task-list"></ul>
+
+    <!-- Bottom Input -->
+    <div class="bottom-bar">
+      <input type="text" id="taskInput" class="task-input" placeholder="Add daily task..." onkeydown="handleInputKey(event)">
+      <button class="btn-add" onclick="addTask()">+</button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // CONFIGURE YOUR SUPABASE KEYS HERE:
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://clpygxcsliofrzhcrmzi.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_v7bXryZS_KNctralxNDGPQ_BW5rXTDV";
+    // -------------------------------------------------------------
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let lists = [];
+    let items = [];
+    let activeListId = null;
+    let highlightedItemId = null;
+    let isSignUpMode = false;
+
+    // --- Authentication ---
+
+    function toggleAuthMode() {
+      isSignUpMode = !isSignUpMode;
+      document.getElementById('authTitle').innerText = isSignUpMode ? "Create Account" : "Sign In";
+      document.getElementById('authSubmitBtn').innerText = isSignUpMode ? "SIGN UP" : "SIGN IN";
+      document.getElementById('authToggleLink').innerText = isSignUpMode 
+        ? "Already have an account? Sign in" 
+        : "Don't have an account? Sign up";
+    }
+
+    async function handleAuthSubmit() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
+
+      if (isSignUpMode) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          alert(error.message);
+        } else {
+          alert("Account created! Check your email to confirm, or sign in now if auto-confirm is enabled.");
+          if (data.session) checkSession();
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
+        else checkSession();
+      }
+    }
+
+    async function logOut() {
+      await supabase.auth.signOut();
+      currentUser = null;
+      document.getElementById('authScreen').style.display = 'flex';
+    }
+
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        document.getElementById('authScreen').style.display = 'none';
+        await loadUserData();
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+      }
+    }
+
+    // --- Data Handling ---
+
+    async function loadUserData() {
+      const { data: userLists, error: listErr } = await supabase
+        .from('lists')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (listErr) {
+        console.error(listErr);
+        return;
+      }
+
+      if (!userLists || userLists.length === 0) {
+        // Create initial default list for new user
+        const { data: newList } = await supabase
+          .from('lists')
+          .insert({ name: 'Morning Routine' })
+          .select()
+          .single();
+        lists = [newList];
+      } else {
+        lists = userLists;
+      }
+
+      if (!activeListId || !lists.find(l => l.id === activeListId)) {
+        activeListId = lists[0].id;
+      }
+
+      const { data: userItems } = await supabase
+        .from('items')
+        .select('*')
+        .eq('list_id', activeListId)
+        .order('order_index', { ascending: true });
+
+      items = userItems || [];
+      render();
+    }
+
+    function render() {
+      const currentList = lists.find(l => l.id === activeListId) || lists[0];
+      if (!currentList) return;
+      activeListId = currentList.id;
+
+      document.getElementById('listHeading').innerText = currentList.name;
+
+      // Picker
+      const picker = document.getElementById('listPicker');
+      picker.innerHTML = '';
+      lists.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.innerText = l.name.toUpperCase();
+        opt.selected = (l.id === activeListId);
+        picker.appendChild(opt);
+      });
+
+      // Stats
+      const completedCount = items.filter(i => i.completed).length;
+      document.getElementById('statusCounter').innerText = `${completedCount} OF ${items.length} COMPLETED`;
+      document.getElementById('resetBtn').disabled = (completedCount === 0);
+
+      // Render Task Rows
+      const listEl = document.getElementById('taskList');
+      listEl.innerHTML = '';
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No tasks in this routine.<br>Write one below!</div>';
+        return;
+      }
+
+      items.forEach(item => {
+        const li = document.createElement('li');
+        const isHighlighted = (highlightedItemId === item.id);
+        li.className = `task-row ${isHighlighted ? 'highlighted' : ''}`;
+
+        const box = document.createElement('div');
+        box.className = 'checkbox';
+        box.innerHTML = item.completed ? '✓' : '';
+        box.onclick = async (e) => {
+          e.stopPropagation();
+          item.completed = !item.completed;
+          render();
+          await supabase.from('items').update({ completed: item.completed }).eq('id', item.id);
+        };
+
+        const text = document.createElement('div');
+        text.className = `task-text ${item.completed ? 'completed' : ''}`;
+        text.innerText = item.title;
+
+        li.appendChild(box);
+        li.appendChild(text);
+
+        li.onclick = () => {
+          highlightedItemId = isHighlighted ? null : item.id;
+          render();
+        };
+
+        if (isHighlighted) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.innerText = '✕';
+          delBtn.onclick = async (e) => {
+            e.stopPropagation();
+            items = items.filter(i => i.id !== item.id);
+            highlightedItemId = null;
+            render();
+            await supabase.from('items').delete().eq('id', item.id);
+          };
+          li.appendChild(delBtn);
+        }
+
+        listEl.appendChild(li);
+      });
+    }
+
+    // --- User Actions ---
+
+    async function addTask() {
+      const input = document.getElementById('taskInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const { data: newItem } = await supabase
+        .from('items')
+        .insert({
+          list_id: activeListId,
+          title: val,
+          completed: false,
+          order_index: items.length
+        })
+        .select()
+        .single();
+
+      if (newItem) {
+        items.push(newItem);
+        input.value = '';
+        render();
+      }
+    }
+
+    function handleInputKey(e) {
+      if (e.key === 'Enter') addTask();
+    }
+
+    async function resetRoutine() {
+      items.forEach(i => i.completed = false);
+      render();
+      await supabase.from('items').update({ completed: false }).eq('list_id', activeListId);
+    }
+
+    async function switchList(id) {
+      activeListId = id;
+      highlightedItemId = null;
+      const { data: userItems } = await supabase
+        .from('items')
+        .select('*')
+        .eq('list_id', activeListId)
+        .order('order_index', { ascending: true });
+      items = userItems || [];
+      render();
+    }
+
+    async function promptNewList() {
+      const name = prompt('Name for new routine:');
+      if (name && name.trim()) {
+        const { data: newList } = await supabase
+          .from('lists')
+          .insert({ name: name.trim() })
+          .select()
+          .single();
+        if (newList) {
+          lists.push(newList);
+          await switchList(newList.id);
+        }
+      }
+    }
+
+    async function deleteCurrentList() {
+      if (lists.length <= 1) {
+        alert("You must keep at least one list.");
+        return;
+      }
+      if (confirm(`Delete the current list?`)) {
+        await supabase.from('lists').delete().eq('id', activeListId);
+        lists = lists.filter(l => l.id !== activeListId);
+        await switchList(lists[0].id);
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.task-row')) {
+        if (highlightedItemId !== null) {
+          highlightedItemId = null;
+          render();
+        }
+      }
+    });
+
+    // Start session check on load
+    checkSession();
+  </script>
+</body>
+</html>
