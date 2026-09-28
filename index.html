@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
   
-  <!-- Supabase Modern Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.min.js"></script>
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * {
@@ -46,7 +46,7 @@
       padding: 12px 18px 0 18px;
     }
 
-    /* Auth Modal Screen */
+    /* Auth Screen Modal */
     .auth-overlay {
       position: fixed;
       top: 0;
@@ -172,7 +172,7 @@
       cursor: pointer;
     }
 
-    /* Main Routine Header */
+    /* Main Header */
     .header {
       display: flex;
       justify-content: space-between;
@@ -330,68 +330,62 @@
 </head>
 <body>
 
-  <!-- Auth Screen -->
+  <!-- Auth Screen Modal -->
   <div id="authScreen" class="auth-overlay">
     <div class="auth-box">
       <h2 id="authTitle">Sign In</h2>
       <p id="authSubtitle">Access your private routine lists</p>
       <input type="email" id="authEmail" class="auth-input" placeholder="Your email address" autocomplete="email">
       <input type="password" id="authPassword" class="auth-input" placeholder="Password (min 6 chars)">
-      <button type="button" id="authSubmitBtn" class="auth-btn">SIGN IN</button>
-      <button type="button" id="authToggleBtn" class="auth-toggle-btn">Don't have an account? Sign up</button>
+      <button type="button" id="authSubmitBtn" class="auth-btn" onclick="handleAuthSubmit()">SIGN IN</button>
+      <button type="button" id="authToggleBtn" class="auth-toggle-btn" onclick="toggleAuthMode()">Don't have an account? Sign up</button>
     </div>
   </div>
 
   <div class="container">
-    <!-- List Selector & Logout -->
+    <!-- List Selector & Actions -->
     <div class="toolbar">
       <div class="list-select-wrapper">
-        <select id="listPicker" class="list-picker"></select>
+        <select id="listPicker" class="list-picker" onchange="switchList(this.value)"></select>
         <span class="select-arrow">▼</span>
       </div>
-      <button class="btn-secondary" id="newListBtn">+ New</button>
-      <button class="btn-secondary" id="delListBtn">🗑</button>
-      <button class="btn-secondary" id="signOutBtn">Sign Out</button>
+      <button class="btn-secondary" onclick="promptNewList()">+ New</button>
+      <button class="btn-secondary" onclick="deleteCurrentList()">🗑</button>
+      <button class="btn-secondary" onclick="logOut()">Sign Out</button>
     </div>
 
-    <!-- Routine Header -->
+    <!-- Header Section -->
     <div class="header">
       <div class="title-area">
         <h1 id="listHeading">Daily Routine</h1>
         <div id="statusCounter" class="status">0 OF 0 COMPLETED</div>
       </div>
-      <button id="resetBtn" class="btn-reset" disabled>
+      <button id="resetBtn" class="btn-reset" onclick="resetRoutine()" disabled>
         ↺ RESET
       </button>
     </div>
 
-    <!-- Items -->
+    <!-- Items List -->
     <ul id="taskList" class="task-list"></ul>
 
     <!-- Bottom Input -->
     <div class="bottom-bar">
-      <input type="text" id="taskInput" class="task-input" placeholder="Add daily task...">
-      <button class="btn-add" id="addTaskBtn">+</button>
+      <input type="text" id="taskInput" class="task-input" placeholder="Add daily task..." onkeydown="handleInputKey(event)">
+      <button class="btn-add" onclick="addTask()">+</button>
     </div>
   </div>
 
   <script>
     // -------------------------------------------------------------
-    // YOUR SUPABASE CONFIG
+    // SUPABASE CREDENTIALS
     // -------------------------------------------------------------
     const SUPABASE_URL = "https://clpygxcsliofrzhcrmzi.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_v7bXryZS_KNctralxNDGPQ_BW5rXTDV";
+    // Replace with your eyJ... key from Supabase > Settings > API Keys > Legacy anon
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscHlneGNzbGlvZnJ6aGNybXppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTQ0MzMsImV4cCI6MjEwNjE5MDQzM30.pwfnNDU2XPjrUYkTXFk0CCUCmUwJfAulTEpuQqmy5GQ";
     // -------------------------------------------------------------
 
+    // Global state variables
     let supabaseClient = null;
-    try {
-      if (window.supabase) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (err) {
-      console.error("Supabase client init error:", err);
-    }
-
     let currentUser = null;
     let lists = [];
     let items = [];
@@ -399,52 +393,35 @@
     let highlightedItemId = null;
     let isSignUpMode = false;
 
-    // --- DOM Event Bindings ---
-    const authToggleBtn = document.getElementById('authToggleBtn');
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const addTaskBtn = document.getElementById('addTaskBtn');
-    const taskInput = document.getElementById('taskInput');
-    const listPicker = document.getElementById('listPicker');
-    const newListBtn = document.getElementById('newListBtn');
-    const delListBtn = document.getElementById('delListBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-
-    authToggleBtn.addEventListener('click', () => {
+    // 1. Auth toggle defined first so buttons work unconditionally
+    function toggleAuthMode() {
       isSignUpMode = !isSignUpMode;
-      document.getElementById('authTitle').innerText = isSignUpMode ? "Create Account" : "Sign In";
-      authSubmitBtn.innerText = isSignUpMode ? "SIGN UP" : "SIGN IN";
-      authToggleBtn.innerText = isSignUpMode 
-        ? "Already have an account? Sign in" 
-        : "Don't have an account? Sign up";
-    });
+      const titleEl = document.getElementById('authTitle');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const toggleBtn = document.getElementById('authToggleBtn');
 
-    authSubmitBtn.addEventListener('click', handleAuthSubmit);
-    resetBtn.addEventListener('click', resetRoutine);
-    addTaskBtn.addEventListener('click', addTask);
-    newListBtn.addEventListener('click', promptNewList);
-    delListBtn.addEventListener('click', deleteCurrentList);
-    signOutBtn.addEventListener('click', logOut);
+      if (isSignUpMode) {
+        titleEl.innerText = "Create Account";
+        submitBtn.innerText = "SIGN UP";
+        toggleBtn.innerText = "Already have an account? Sign in";
+      } else {
+        titleEl.innerText = "Sign In";
+        submitBtn.innerText = "SIGN IN";
+        toggleBtn.innerText = "Don't have an account? Sign up";
+      }
+    }
 
-    listPicker.addEventListener('change', (e) => {
-      switchList(e.target.value);
-    });
-
-    taskInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') addTask();
-    });
-
-    // --- Authentication Logic ---
-
+    // 2. Auth submission
     async function handleAuthSubmit() {
       if (!supabaseClient) {
-        alert("Supabase client not initialized. Check your key in index.html.");
+        alert("Database connection is not ready. Please verify your Supabase anon key.");
         return;
       }
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
+
       if (!email || !password) {
-        alert("Please enter both email and password.");
+        alert("Please enter both an email and password.");
         return;
       }
 
@@ -453,19 +430,23 @@
         if (error) {
           alert(error.message);
         } else {
-          alert("Account created!");
-          if (data.session) checkSession();
-          else checkSession();
+          alert("Account created successfully! Signing you in...");
+          checkSession();
         }
       } else {
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) alert(error.message);
-        else checkSession();
+        if (error) {
+          alert(error.message);
+        } else {
+          checkSession();
+        }
       }
     }
 
     async function logOut() {
-      if (supabaseClient) await supabaseClient.auth.signOut();
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
       currentUser = null;
       document.getElementById('authScreen').style.display = 'flex';
     }
@@ -482,17 +463,17 @@
       }
     }
 
-    // --- Data Handling ---
-
+    // 3. User Data Handling
     async function loadUserData() {
       if (!supabaseClient) return;
+
       const { data: userLists, error: listErr } = await supabaseClient
         .from('lists')
         .select('*')
         .order('created_at', { ascending: true });
 
       if (listErr) {
-        console.error("List error:", listErr);
+        console.error("Error loading lists:", listErr);
         return;
       }
 
@@ -529,18 +510,19 @@
 
       document.getElementById('listHeading').innerText = currentList.name;
 
-      listPicker.innerHTML = '';
+      const picker = document.getElementById('listPicker');
+      picker.innerHTML = '';
       lists.forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
         opt.innerText = l.name.toUpperCase();
         opt.selected = (l.id === activeListId);
-        listPicker.appendChild(opt);
+        picker.appendChild(opt);
       });
 
       const completedCount = items.filter(i => i.completed).length;
       document.getElementById('statusCounter').innerText = `${completedCount} OF ${items.length} COMPLETED`;
-      resetBtn.disabled = (completedCount === 0);
+      document.getElementById('resetBtn').disabled = (completedCount === 0);
 
       const listEl = document.getElementById('taskList');
       listEl.innerHTML = '';
@@ -596,7 +578,8 @@
     }
 
     async function addTask() {
-      const val = taskInput.value.trim();
+      const input = document.getElementById('taskInput');
+      const val = input.value.trim();
       if (!val || !activeListId) return;
 
       const { data: newItem } = await supabaseClient
@@ -612,9 +595,13 @@
 
       if (newItem) {
         items.push(newItem);
-        taskInput.value = '';
+        input.value = '';
         render();
       }
+    }
+
+    function handleInputKey(e) {
+      if (e.key === 'Enter') addTask();
     }
 
     async function resetRoutine() {
@@ -671,7 +658,15 @@
       }
     });
 
-    checkSession();
+    // 4. Safely initialize client and check auth session on load
+    try {
+      if (window.supabase && SUPABASE_ANON_KEY !== "PASTE_YOUR_LEGACY_ANON_KEY_HERE") {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        checkSession();
+      }
+    } catch (e) {
+      console.error("Initialization error:", e);
+    }
   </script>
 </body>
 </html>
