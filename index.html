@@ -14,14 +14,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
   
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase Modern Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.min.js"></script>
 
   <style>
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      user-select: none;
     }
     
     body {
@@ -85,14 +84,15 @@
 
     .auth-input {
       width: 100%;
-      padding: 10px 14px;
+      padding: 12px 14px;
       margin-bottom: 12px;
       border: 2px solid #0d0d0d;
       border-radius: 8px;
       font-family: 'Patrick Hand', cursive;
       font-size: 20px;
       outline: none;
-      user-select: text;
+      color: #0d0d0d;
+      background: #fff;
     }
 
     .auth-btn {
@@ -101,27 +101,27 @@
       color: #FFFFFF;
       border: none;
       border-radius: 8px;
-      padding: 10px;
+      padding: 12px;
       font-family: 'Patrick Hand', cursive;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: bold;
       cursor: pointer;
       margin-top: 6px;
     }
 
     .auth-toggle-btn {
-      background: none;
+      background: transparent;
       border: none;
-      padding: 8px 12px;
+      padding: 12px;
       margin-top: 14px;
       color: #0d0d0d;
       text-decoration: underline;
       cursor: pointer;
       font-family: 'Patrick Hand', cursive;
-      font-size: 19px;
-      display: inline-block;
-      user-select: auto;
-      -webkit-user-select: auto;
+      font-size: 20px;
+      display: block;
+      width: 100%;
+      text-align: center;
     }
 
     /* List Selector Toolbar */
@@ -311,7 +311,7 @@
       font-size: 20px;
       outline: none;
       color: #0d0d0d;
-      user-select: text;
+      background: #fff;
     }
 
     .btn-add {
@@ -330,15 +330,15 @@
 </head>
 <body>
 
-  <!-- Auth Screen (Visible when logged out) -->
+  <!-- Auth Screen -->
   <div id="authScreen" class="auth-overlay">
     <div class="auth-box">
       <h2 id="authTitle">Sign In</h2>
       <p id="authSubtitle">Access your private routine lists</p>
       <input type="email" id="authEmail" class="auth-input" placeholder="Your email address" autocomplete="email">
       <input type="password" id="authPassword" class="auth-input" placeholder="Password (min 6 chars)">
-      <button id="authSubmitBtn" class="auth-btn" onclick="handleAuthSubmit()">SIGN IN</button>
-      <button type="button" id="authToggleLink" class="auth-toggle-btn" onclick="toggleAuthMode()">Don't have an account? Sign up</button>
+      <button type="button" id="authSubmitBtn" class="auth-btn">SIGN IN</button>
+      <button type="button" id="authToggleBtn" class="auth-toggle-btn">Don't have an account? Sign up</button>
     </div>
   </div>
 
@@ -346,12 +346,12 @@
     <!-- List Selector & Logout -->
     <div class="toolbar">
       <div class="list-select-wrapper">
-        <select id="listPicker" class="list-picker" onchange="switchList(this.value)"></select>
+        <select id="listPicker" class="list-picker"></select>
         <span class="select-arrow">▼</span>
       </div>
-      <button class="btn-secondary" onclick="promptNewList()">+ New</button>
-      <button class="btn-secondary" onclick="deleteCurrentList()">🗑</button>
-      <button class="btn-secondary" onclick="logOut()">Sign Out</button>
+      <button class="btn-secondary" id="newListBtn">+ New</button>
+      <button class="btn-secondary" id="delListBtn">🗑</button>
+      <button class="btn-secondary" id="signOutBtn">Sign Out</button>
     </div>
 
     <!-- Routine Header -->
@@ -360,7 +360,7 @@
         <h1 id="listHeading">Daily Routine</h1>
         <div id="statusCounter" class="status">0 OF 0 COMPLETED</div>
       </div>
-      <button id="resetBtn" class="btn-reset" onclick="resetRoutine()" disabled>
+      <button id="resetBtn" class="btn-reset" disabled>
         ↺ RESET
       </button>
     </div>
@@ -370,20 +370,27 @@
 
     <!-- Bottom Input -->
     <div class="bottom-bar">
-      <input type="text" id="taskInput" class="task-input" placeholder="Add daily task..." onkeydown="handleInputKey(event)">
-      <button class="btn-add" onclick="addTask()">+</button>
+      <input type="text" id="taskInput" class="task-input" placeholder="Add daily task...">
+      <button class="btn-add" id="addTaskBtn">+</button>
     </div>
   </div>
 
   <script>
     // -------------------------------------------------------------
-    // CONFIGURE YOUR SUPABASE KEYS HERE:
+    // YOUR SUPABASE CONFIG
     // -------------------------------------------------------------
     const SUPABASE_URL = "https://clpygxcsliofrzhcrmzi.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_v7bXryZS_KNctralxNDGPQ_BW5rXTDV";
     // -------------------------------------------------------------
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabaseClient = null;
+    try {
+      if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (err) {
+      console.error("Supabase client init error:", err);
+    }
 
     let currentUser = null;
     let lists = [];
@@ -392,18 +399,48 @@
     let highlightedItemId = null;
     let isSignUpMode = false;
 
-    // --- Authentication ---
+    // --- DOM Event Bindings ---
+    const authToggleBtn = document.getElementById('authToggleBtn');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskInput = document.getElementById('taskInput');
+    const listPicker = document.getElementById('listPicker');
+    const newListBtn = document.getElementById('newListBtn');
+    const delListBtn = document.getElementById('delListBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
 
-    function toggleAuthMode() {
+    authToggleBtn.addEventListener('click', () => {
       isSignUpMode = !isSignUpMode;
       document.getElementById('authTitle').innerText = isSignUpMode ? "Create Account" : "Sign In";
-      document.getElementById('authSubmitBtn').innerText = isSignUpMode ? "SIGN UP" : "SIGN IN";
-      document.getElementById('authToggleLink').innerText = isSignUpMode 
+      authSubmitBtn.innerText = isSignUpMode ? "SIGN UP" : "SIGN IN";
+      authToggleBtn.innerText = isSignUpMode 
         ? "Already have an account? Sign in" 
         : "Don't have an account? Sign up";
-    }
+    });
+
+    authSubmitBtn.addEventListener('click', handleAuthSubmit);
+    resetBtn.addEventListener('click', resetRoutine);
+    addTaskBtn.addEventListener('click', addTask);
+    newListBtn.addEventListener('click', promptNewList);
+    delListBtn.addEventListener('click', deleteCurrentList);
+    signOutBtn.addEventListener('click', logOut);
+
+    listPicker.addEventListener('change', (e) => {
+      switchList(e.target.value);
+    });
+
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addTask();
+    });
+
+    // --- Authentication Logic ---
 
     async function handleAuthSubmit() {
+      if (!supabaseClient) {
+        alert("Supabase client not initialized. Check your key in index.html.");
+        return;
+      }
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
       if (!email || !password) {
@@ -412,28 +449,30 @@
       }
 
       if (isSignUpMode) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
         if (error) {
           alert(error.message);
         } else {
-          alert("Account created! Check your email to confirm, or sign in now if auto-confirm is enabled.");
+          alert("Account created!");
           if (data.session) checkSession();
+          else checkSession();
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) alert(error.message);
         else checkSession();
       }
     }
 
     async function logOut() {
-      await supabase.auth.signOut();
+      if (supabaseClient) await supabaseClient.auth.signOut();
       currentUser = null;
       document.getElementById('authScreen').style.display = 'flex';
     }
 
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
         currentUser = session.user;
         document.getElementById('authScreen').style.display = 'none';
@@ -446,39 +485,40 @@
     // --- Data Handling ---
 
     async function loadUserData() {
-      const { data: userLists, error: listErr } = await supabase
+      if (!supabaseClient) return;
+      const { data: userLists, error: listErr } = await supabaseClient
         .from('lists')
         .select('*')
         .order('created_at', { ascending: true });
 
       if (listErr) {
-        console.error(listErr);
+        console.error("List error:", listErr);
         return;
       }
 
       if (!userLists || userLists.length === 0) {
-        // Create initial default list for new user
-        const { data: newList } = await supabase
+        const { data: newList } = await supabaseClient
           .from('lists')
           .insert({ name: 'Morning Routine' })
           .select()
           .single();
-        lists = [newList];
+        lists = newList ? [newList] : [];
       } else {
         lists = userLists;
       }
 
       if (!activeListId || !lists.find(l => l.id === activeListId)) {
-        activeListId = lists[0].id;
+        activeListId = lists[0]?.id;
       }
 
-      const { data: userItems } = await supabase
-        .from('items')
-        .select('*')
-        .eq('list_id', activeListId)
-        .order('order_index', { ascending: true });
-
-      items = userItems || [];
+      if (activeListId) {
+        const { data: userItems } = await supabaseClient
+          .from('items')
+          .select('*')
+          .eq('list_id', activeListId)
+          .order('order_index', { ascending: true });
+        items = userItems || [];
+      }
       render();
     }
 
@@ -489,23 +529,19 @@
 
       document.getElementById('listHeading').innerText = currentList.name;
 
-      // Picker
-      const picker = document.getElementById('listPicker');
-      picker.innerHTML = '';
+      listPicker.innerHTML = '';
       lists.forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
         opt.innerText = l.name.toUpperCase();
         opt.selected = (l.id === activeListId);
-        picker.appendChild(opt);
+        listPicker.appendChild(opt);
       });
 
-      // Stats
       const completedCount = items.filter(i => i.completed).length;
       document.getElementById('statusCounter').innerText = `${completedCount} OF ${items.length} COMPLETED`;
-      document.getElementById('resetBtn').disabled = (completedCount === 0);
+      resetBtn.disabled = (completedCount === 0);
 
-      // Render Task Rows
       const listEl = document.getElementById('taskList');
       listEl.innerHTML = '';
 
@@ -526,7 +562,7 @@
           e.stopPropagation();
           item.completed = !item.completed;
           render();
-          await supabase.from('items').update({ completed: item.completed }).eq('id', item.id);
+          await supabaseClient.from('items').update({ completed: item.completed }).eq('id', item.id);
         };
 
         const text = document.createElement('div');
@@ -550,7 +586,7 @@
             items = items.filter(i => i.id !== item.id);
             highlightedItemId = null;
             render();
-            await supabase.from('items').delete().eq('id', item.id);
+            await supabaseClient.from('items').delete().eq('id', item.id);
           };
           li.appendChild(delBtn);
         }
@@ -559,14 +595,11 @@
       });
     }
 
-    // --- User Actions ---
-
     async function addTask() {
-      const input = document.getElementById('taskInput');
-      const val = input.value.trim();
-      if (!val) return;
+      const val = taskInput.value.trim();
+      if (!val || !activeListId) return;
 
-      const { data: newItem } = await supabase
+      const { data: newItem } = await supabaseClient
         .from('items')
         .insert({
           list_id: activeListId,
@@ -579,25 +612,21 @@
 
       if (newItem) {
         items.push(newItem);
-        input.value = '';
+        taskInput.value = '';
         render();
       }
-    }
-
-    function handleInputKey(e) {
-      if (e.key === 'Enter') addTask();
     }
 
     async function resetRoutine() {
       items.forEach(i => i.completed = false);
       render();
-      await supabase.from('items').update({ completed: false }).eq('list_id', activeListId);
+      await supabaseClient.from('items').update({ completed: false }).eq('list_id', activeListId);
     }
 
     async function switchList(id) {
       activeListId = id;
       highlightedItemId = null;
-      const { data: userItems } = await supabase
+      const { data: userItems } = await supabaseClient
         .from('items')
         .select('*')
         .eq('list_id', activeListId)
@@ -609,7 +638,7 @@
     async function promptNewList() {
       const name = prompt('Name for new routine:');
       if (name && name.trim()) {
-        const { data: newList } = await supabase
+        const { data: newList } = await supabaseClient
           .from('lists')
           .insert({ name: name.trim() })
           .select()
@@ -627,7 +656,7 @@
         return;
       }
       if (confirm(`Delete the current list?`)) {
-        await supabase.from('lists').delete().eq('id', activeListId);
+        await supabaseClient.from('lists').delete().eq('id', activeListId);
         lists = lists.filter(l => l.id !== activeListId);
         await switchList(lists[0].id);
       }
@@ -642,7 +671,6 @@
       }
     });
 
-    // Start session check on load
     checkSession();
   </script>
 </body>
